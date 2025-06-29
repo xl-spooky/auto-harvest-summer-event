@@ -7,10 +7,10 @@ function Harvester.harvest(PlotCache)
     for _, plot in ipairs(PlotCache.getPlots()) do
         local crop = plot:FindFirstChild("Crop")
         if crop
-        and crop:FindFirstChild("Growth")
-        and crop:FindFirstChild("Maturity")
-        and crop:FindFirstChild("HarvestPrompt")
-        and crop.Growth.Value >= crop.Maturity.Value then
+           and crop:FindFirstChild("Growth")
+           and crop:FindFirstChild("Maturity")
+           and crop:FindFirstChild("HarvestPrompt")
+           and crop.Growth.Value >= crop.Maturity.Value then
 
             spawn(function()
                 local ok, err = pcall(function()

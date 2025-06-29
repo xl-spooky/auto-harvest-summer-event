@@ -1,134 +1,94 @@
--- AutoHarvest.lua
-
--- immediately create GUI so it always shows
-local Players = game:GetService("Players")
-local lp = Players.LocalPlayer or Players.PlayerAdded:Wait()
-local pg = lp:WaitForChild("PlayerGui")
-
-local gui = Instance.new("ScreenGui", pg)
-gui.Name = "AutoHarvestGUI"
-gui.ResetOnSpawn = false
-
--- logging utility
-local logs = {}
-local function log(msg)
-    logs[#logs+1] = msg
-end
-
--- configuration
-local Config = {
-    AutoHarvest     = false,
-    HarvestInterval = 0.1,
-    Running         = true,
-}
-
--- Toggle button
-local btnToggle = Instance.new("TextButton", gui)
-btnToggle.Size = UDim2.new(0,150,0,40)
-btnToggle.Position = UDim2.new(0,10,0,10)
-btnToggle.Text = "AutoHarvest: Off"
-btnToggle.BackgroundColor3 = Color3.new(0,0,0)
-btnToggle.BackgroundTransparency = 0.5
-btnToggle.TextColor3 = Color3.new(1,1,1)
-btnToggle.MouseButton1Click:Connect(function()
-    Config.AutoHarvest = not Config.AutoHarvest
-    btnToggle.Text = "AutoHarvest: " .. (Config.AutoHarvest and "On" or "Off")
-    log("AutoHarvest "..(Config.AutoHarvest and "enabled" or "disabled"))
-end)
-
--- Exit button
-local btnExit = Instance.new("TextButton", gui)
-btnExit.Size = UDim2.new(0,80,0,30)
-btnExit.Position = UDim2.new(0,10,0,60)
-btnExit.Text = "Exit"
-btnExit.BackgroundColor3 = Color3.new(0,0,0)
-btnExit.BackgroundTransparency = 0.5
-btnExit.TextColor3 = Color3.new(1,1,1)
-btnExit.MouseButton1Click:Connect(function()
-    Config.Running = false
-    Config.AutoHarvest = false
-    gui:Destroy()
-    log("Script exited")
-end)
-
--- Copy Logs button
-local btnCopy = Instance.new("TextButton", gui)
-btnCopy.Size = UDim2.new(0,120,0,30)
-btnCopy.Position = UDim2.new(0,10,0,100)
-btnCopy.Text = "Copy Logs"
-btnCopy.BackgroundColor3 = Color3.new(0,0,0)
-btnCopy.BackgroundTransparency = 0.5
-btnCopy.TextColor3 = Color3.new(1,1,1)
-btnCopy.MouseButton1Click:Connect(function()
-    local content = table.concat(logs, "\n")
-    if setclipboard then
-        pcall(setclipboard, content)
-    elseif syn and syn.set_clipboard then
-        pcall(syn.set_clipboard, content)
-    end
-    btnCopy.Text = "Copied!"
-    task.delay(2, function() btnCopy.Text = "Copy Logs" end)
-    log("Logs copied")
-end)
-
-log("GUI created")
-
--- plot cache
-local workspace = workspace
-local plots = {}
-local function addPlot(p)
-    if p and not table.find(plots,p) then
-        table.insert(plots,p)
-        log("Plot added: "..p.Name)
-    end
-end
-local function removePlot(p)
-    for i,v in ipairs(plots) do
-        if v==p then
-            table.remove(plots,i)
-            log("Plot removed: "..p.Name)
-            break
-        end
-    end
-end
-
-local plotFolder = workspace:WaitForChild("Plots")
-for _,p in ipairs(plotFolder:GetChildren()) do addPlot(p) end
-plotFolder.ChildAdded:Connect(addPlot)
-plotFolder.ChildRemoved:Connect(removePlot)
-log("Plot cache initialized ("..#plots.." plots)")
-
--- harvest logic
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local harvestEvent = ReplicatedStorage:WaitForChild("ByteNetReliable")
-local function harvestAll()
-    log("Harvest cycle")
-    for _,plot in ipairs(plots) do
-        local c = plot:FindFirstChild("Crop")
-        if c
-        and c:FindFirstChild("Growth")
-        and c:FindFirstChild("Maturity")
-        and c:FindFirstChild("HarvestPrompt")
-        and c.Growth.Value >= c.Maturity.Value then
-            spawn(function()
-                local ok, err = pcall(function()
-                    harvestEvent:FireServer(c.HarvestPrompt)
-                end)
-                log(ok and ("Harvested "..plot.Name) or ("Error "..plot.Name..": "..tostring(err)))
-            end)
-        end
-    end
-end
-
-log("Initialization complete")
-
--- main loop
 spawn(function()
-    while Config.Running do
-        if Config.AutoHarvest then
-            harvestAll()
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local workspace = workspace
+
+    -- immediate debug label
+    local lp = Players.LocalPlayer or Players.PlayerAdded:Wait()
+    local pg = lp:WaitForChild("PlayerGui")
+    local dbgGui = Instance.new("ScreenGui", pg)
+    dbgGui.Name = "AHDebug"
+    local dbgLbl = Instance.new("TextLabel", dbgGui)
+    dbgLbl.Size = UDim2.new(0,200,0,50)
+    dbgLbl.Position = UDim2.new(0,10,0,10)
+    dbgLbl.Text = "AutoHarvest startup"
+    dbgLbl.BackgroundTransparency = 0.5
+
+    -- config
+    local Config = {AutoHarvest=false,HarvestInterval=0.1,Running=true}
+    local logs = {}
+    local function log(m) logs[#logs+1]=m end
+    log("config ok")
+
+    -- cache
+    local plots = {}
+    local function add(p) if p and not table.find(plots,p) then table.insert(plots,p) end end
+    local function rem(p) for i,v in ipairs(plots) do if v==p then table.remove(plots,i);break end end end
+    local folder = workspace:WaitForChild("Plots")
+    for _,p in ipairs(folder:GetChildren()) do add(p) end
+    folder.ChildAdded:Connect(add)
+    folder.ChildRemoved:Connect(rem)
+    log("cache ok")
+
+    -- harvest fn
+    local evt = ReplicatedStorage:WaitForChild("ByteNetReliable")
+    local function harvestAll()
+        for _,pl in ipairs(plots) do
+            local c = pl:FindFirstChild("Crop")
+            if c and c:FindFirstChild("Growth") and c:FindFirstChild("Maturity") and c:FindFirstChild("HarvestPrompt") and c.Growth.Value>=c.Maturity.Value then
+                pcall(function() evt:FireServer(c.HarvestPrompt) end)
+            end
         end
-        task.wait(Config.HarvestInterval)
     end
-    log("Main loop ended")
+
+    -- remove debug label
+    task.delay(2, function() dbgGui:Destroy() end)
+
+    -- build GUI
+    local gui = Instance.new("ScreenGui", pg)
+    gui.Name = "AutoHarvestGUI"
+    local tb = Instance.new("TextButton", gui)
+    tb.Size = UDim2.new(0,150,0,40)
+    tb.Position = UDim2.new(0,10,0,10)
+    tb.Text = "AutoHarvest: Off"
+    tb.BackgroundTransparency = 0.5
+    tb.TextColor3 = Color3.new(1,1,1)
+    task.wait(0.1)
+    tb.MouseButton1Click:Connect(function()
+        Config.AutoHarvest = not Config.AutoHarvest
+        tb.Text = "AutoHarvest: "..(Config.AutoHarvest and "On" or "Off")
+        log("toggled "..tostring(Config.AutoHarvest))
+    end)
+
+    local eb = Instance.new("TextButton", gui)
+    eb.Size = UDim2.new(0,80,0,30)
+    eb.Position = UDim2.new(0,10,0,60)
+    eb.Text = "Exit"
+    eb.BackgroundTransparency = 0.5
+    eb.TextColor3 = Color3.new(1,1,1)
+    eb.MouseButton1Click:Connect(function()
+        Config.Running = false
+        gui:Destroy()
+    end)
+
+    local cb = Instance.new("TextButton", gui)
+    cb.Size = UDim2.new(0,120,0,30)
+    cb.Position = UDim2.new(0,10,0,100)
+    cb.Text = "Copy Logs"
+    cb.BackgroundTransparency = 0.5
+    cb.TextColor3 = Color3.new(1,1,1)
+    cb.MouseButton1Click:Connect(function()
+        local s = table.concat(logs,"\n")
+        if setclipboard then pcall(setclipboard,s) elseif syn and syn.set_clipboard then pcall(syn.set_clipboard,s) end
+        cb.Text="Copied"
+        task.delay(2,function() cb.Text="Copy Logs" end)
+    end)
+
+    -- main loop
+    spawn(function()
+        while Config.Running do
+            if Config.AutoHarvest then harvestAll() end
+            task.wait(Config.HarvestInterval)
+        end
+    end)
 end)

@@ -1,13 +1,16 @@
 local baseUrl = "https://raw.githubusercontent.com/xl-spooky/auto-harvest-summer-event/main/src/"
 
-local function fetch(name)
-    return game:HttpGet(baseUrl .. name .. ".lua", true)
+do
+    local Players = game:GetService("Players")
+    local gui = Instance.new("ScreenGui", Players.LocalPlayer:WaitForChild("PlayerGui"))
+    gui.Name = "LoaderDebug"
+    local lbl = Instance.new("TextLabel", gui)
+    lbl.Size = UDim2.new(0, 200, 0, 50)
+    lbl.Position = UDim2.new(0, 10, 0, 10)
+    lbl.Text = "Loader.lua OK"
+    lbl.BackgroundTransparency = 0.5
+    task.delay(3, function() gui:Destroy() end)
 end
 
-local Config    = loadstring(fetch("Config"))()
-local PlotCache = loadstring(fetch("PlotCache"))()
-local Harvester = loadstring(fetch("Harvester"))()
-local GUI       = loadstring(fetch("GUI"))()
-local mainChunk = loadstring(fetch("Main"))
-
-mainChunk(Config, PlotCache, Harvester, GUI)
+local mainCode = game:HttpGet(baseUrl .. "Main.lua", true)
+loadstring(mainCode)()

@@ -1,0 +1,10 @@
+local Players = game:GetService("Players")
+local lp = Players.LocalPlayer or Players.PlayerAdded:Wait()
+local gui = Instance.new("ScreenGui", lp:WaitForChild("PlayerGui"))
+gui.Name = "VegaXTestGUI"
+local label = Instance.new("TextLabel", gui)
+label.Size = UDim2.new(0, 200, 0, 50)
+label.Position = UDim2.new(0.5, -100, 0.5, -25)
+label.Text = "Hello from Vega X!"
+label.BackgroundColor3 = Color3.new(1, 1, 1)
+label.TextColor3 = Color3.new(0, 0, 0)

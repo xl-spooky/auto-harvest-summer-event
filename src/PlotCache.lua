@@ -1,5 +1,3 @@
--- maintains a live list of all garden plots
-
 local PlotCache = {}
 local plots = {}
 

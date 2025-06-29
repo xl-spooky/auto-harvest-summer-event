@@ -10,8 +10,8 @@ function GUI.create(onToggle, onExit)
     screenGui.Parent = UserGui
 
     local toggleBtn = Instance.new("TextButton")
-    toggleBtn.Size = UDim2.new(0, 150, 0, 40)
-    toggleBtn.Position = UDim2.new(0, 10, 0, 10)
+    toggleBtn.Size = UDim2.new(0,150,0,40)
+    toggleBtn.Position = UDim2.new(0,10,0,10)
     toggleBtn.Text = "AutoHarvest: Off"
     toggleBtn.BackgroundTransparency = 0.3
     toggleBtn.Parent = screenGui
@@ -24,8 +24,8 @@ function GUI.create(onToggle, onExit)
     end)
 
     local exitBtn = Instance.new("TextButton")
-    exitBtn.Size = UDim2.new(0, 80, 0, 30)
-    exitBtn.Position = UDim2.new(0, 10, 0, 60)
+    exitBtn.Size = UDim2.new(0,80,0,30)
+    exitBtn.Position = UDim2.new(0,10,0,60)
     exitBtn.Text = "Exit"
     exitBtn.BackgroundTransparency = 0.3
     exitBtn.Parent = screenGui
